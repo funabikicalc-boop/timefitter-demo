@@ -1,0 +1,4173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shunta Lesson Scheduler</title>
+  <!-- ホーム画面用アイコン（PNG Base64） -->
+  <link rel="apple-touch-icon" href="/icon-180.png">
+  <link rel="icon" type="image/png" href="/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Shunta Lesson">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-light: #818CF8;
+      --primary-dark: #3730A3;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --gray-50: #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-300: #D1D5DB;
+      --gray-400: #9CA3AF;
+      --gray-500: #6B7280;
+      --gray-600: #4B5563;
+      --gray-700: #374151;
+      --gray-800: #1F2937;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: var(--gray-800);
+    }
+    
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    /* ヘッダー */
+    .header {
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px 30px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .header h1 .material-icons {
+      font-size: 2rem;
+    }
+    
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--gray-100);
+      border-radius: 20px;
+      font-size: 0.875rem;
+      color: var(--gray-600);
+    }
+    
+    .status-badge.connected {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gray-400);
+    }
+    
+    .status-badge.connected .status-dot {
+      background: var(--success);
+    }
+    
+    /* タブナビゲーション */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: rgba(255,255,255,0.2);
+      padding: 8px;
+      border-radius: var(--radius);
+    }
+    
+    .tab-btn {
+      flex: 1;
+      padding: 14px 12px;
+      border: none;
+      background: transparent;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    
+    .tab-btn .material-icons {
+      font-size: 1.1rem;
+    }
+    
+    .tab-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .tab-btn.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: var(--shadow-md);
+    }
+    
+    /* メインコンテンツ */
+    .main-content {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+    
+    .tab-panel {
+      display: none;
+      padding: 30px;
+    }
+    
+    .tab-panel.active {
+      display: block;
+    }
+    
+    /* カード */
+    .card {
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--gray-700);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .card-title .material-icons {
+      color: var(--primary);
+    }
+    
+    /* フォーム */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .form-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--gray-600);
+    }
+    
+    .form-input, .form-select {
+      padding: 10px 14px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      background: white;
+    }
+    
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .form-input::placeholder {
+      color: var(--gray-400);
+    }
+    
+    /* チェックボックス */
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--primary);
+    }
+    
+    /* ボタン */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn-secondary {
+      background: var(--gray-200);
+      color: var(--gray-700);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--gray-300);
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #DC2626;
+    }
+    
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #059669;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    /* リスト */
+    .list-container {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    /* 生徒管理グリッド */
+    .student-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+    
+    .student-list-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    
+    .student-list-scroll {
+      flex: 1;
+      max-height: calc(100vh - 300px);
+      min-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .list-item {
+      padding: 14px 16px;
+      background: white;
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .list-item:hover {
+      border-color: var(--primary-light);
+      transform: translateX(4px);
+    }
+    
+    .list-item.selected {
+      border-color: var(--primary);
+      background: #EEF2FF;
+    }
+    
+    .list-item-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+    
+    .list-item-content {
+      flex: 1;
+    }
+    
+    .list-item-title {
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    
+    .list-item-subtitle {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+    
+    /* 曜日グリッド */
+    .weekday-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .weekday-item {
+      background: white;
+      border-radius: var(--radius-sm);
+      padding: 12px 8px;
+      text-align: center;
+    }
+    
+    .weekday-item label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      margin-bottom: 8px;
+    }
+    
+    .weekday-item input {
+      width: 100%;
+      padding: 8px;
+      border: 2px solid var(--gray-200);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    
+    .weekday-item input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    /* 新しい曜日時間選択 */
+    .weekday-grid-new {
+      margin-top: 12px;
+      background: white;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+    }
+    
+    .weekday-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .weekday-row:last-child {
+      border-bottom: none;
+    }
+    
+    .weekday-label {
+      width: 40px;
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 1rem;
+    }
+    
+    .time-select-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    
+    .time-select-group span {
+      color: var(--gray-500);
+      font-size: 0.9rem;
+    }
+    
+    .time-select {
+      padding: 6px 8px;
+      border: 2px solid var(--gray-200);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: white;
+      cursor: pointer;
+    }
+    
+    .time-select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .hour-select {
+      width: 65px;
+    }
+    
+    .minute-select {
+      width: 65px;
+    }
+    
+    /* モーダル */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+    }
+    
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .modal {
+      background: white;
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(20px);
+      transition: transform 0.3s;
+    }
+    
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+    
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--gray-800);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .modal-title .material-icons {
+      color: var(--primary);
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--gray-500);
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+    
+    /* 下書き確認モーダル */
+    .draft-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+      backdrop-filter: blur(4px);
+    }
+    
+    .draft-modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .draft-modal {
+      background: white;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      transform: scale(0.9) translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+    }
+    
+    .draft-modal-overlay.active .draft-modal {
+      transform: scale(1) translateY(0);
+    }
+    
+    .draft-modal-icon {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .draft-modal-icon .material-icons {
+      font-size: 3rem;
+      color: white;
+    }
+    
+    .draft-modal-content {
+      padding: 24px;
+      text-align: center;
+    }
+    
+    .draft-modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 8px;
+    }
+    
+    .draft-modal-desc {
+      color: var(--gray-500);
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+    
+    .draft-modal-info {
+      background: var(--gray-50);
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .draft-modal-info .material-icons {
+      color: var(--primary);
+      font-size: 1.2rem;
+    }
+    
+    .draft-modal-info span {
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+    
+    .draft-modal-buttons {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .draft-modal-buttons .btn {
+      flex: 1;
+      padding: 14px 20px;
+      font-size: 1rem;
+      border-radius: 12px;
+    }
+    
+    .modal-close:hover {
+      color: var(--gray-700);
+    }
+    
+    .modal-body {
+      padding: 20px;
+    }
+    
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    
+    /* スケジュールアイテムをクリック可能に */
+    .schedule-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: white;
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      border-left: 4px solid var(--primary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .schedule-item:hover {
+      background: #EEF2FF;
+      transform: translateX(4px);
+    }
+    
+    .schedule-item:active {
+      transform: translateX(2px);
+    }
+    
+    .schedule-item.selected {
+      background: #DBEAFE;
+      border-left-color: var(--primary-dark);
+    }
+    
+    .schedule-item .item-checkbox {
+  width: 16px;
+  height: 16px;
+}
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+    
+    .schedule-item .item-actions {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+    
+    .schedule-item .action-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    
+    .schedule-item .action-btn.edit-btn {
+      background: var(--gray-100);
+      color: var(--gray-600);
+    }
+    
+    .schedule-item .action-btn.edit-btn:hover {
+      background: var(--primary-light);
+      color: white;
+    }
+    
+    .schedule-item .action-btn.delete-btn {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+    
+    .schedule-item .action-btn.delete-btn:hover {
+      background: #DC2626;
+      color: white;
+    }
+    
+    /* 一括操作バー */
+    .bulk-actions {
+      background: var(--gray-100);
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--gray-700);
+    }
+    
+    .checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+    }
+    
+    /* 未割当アイテムもクリック可能に */
+    .unassigned-item {
+      padding: 10px 12px;
+      color: #78350F;
+      font-size: 0.9rem;
+      background: white;
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .unassigned-item:hover {
+      background: #FEF3C7;
+    }
+    
+    .unassigned-item .add-btn {
+      background: var(--warning);
+    }
+    
+    /* 割当詳細リスト */
+    .detail-list {
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+    
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    
+    .detail-item:last-child {
+      border-bottom: none;
+    }
+    
+    .detail-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    
+    .detail-icon.complete {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+    
+    .detail-icon.partial {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+    
+    .detail-icon.none {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+    
+    .detail-content {
+      flex: 1;
+    }
+    
+    .detail-name {
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    
+    .detail-status {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+    
+    .detail-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .detail-badge.complete {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+    
+    .detail-badge.partial {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+    
+    .detail-badge.none {
+      background: #FEE2E2;
+      color: #991B1B;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    
+    /* スケジュール表示 */
+    .schedule-header {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .schedule-result {
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      min-height: 300px;
+    }
+    
+    .schedule-day {
+      margin-bottom: 20px;
+    }
+    
+    .schedule-day-header {
+      font-weight: 600;
+      color: var(--gray-700);
+      padding: 10px 0;
+      border-bottom: 2px solid var(--gray-200);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .schedule-day-header .material-icons {
+      color: var(--primary);
+    }
+    
+    .schedule-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: white;
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      border-left: 4px solid var(--primary);
+    }
+    
+    .schedule-time {
+      font-weight: 600;
+      color: var(--primary);
+      min-width: 110px;
+    }
+    
+    .schedule-student {
+      flex: 1;
+      font-weight: 500;
+    }
+    
+    .schedule-place {
+      padding: 4px 12px;
+      background: var(--gray-100);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: var(--gray-600);
+    }
+    
+    /* 未割当リスト */
+    .unassigned-list {
+      margin-top: 20px;
+      padding: 16px;
+      background: #FEF3C7;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--warning);
+    }
+    
+    .unassigned-title {
+      font-weight: 600;
+      color: #92400E;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .unassigned-item {
+      padding: 8px 0;
+      color: #78350F;
+      font-size: 0.9rem;
+    }
+    
+    /* 統計 */
+    .stats {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .stat-card {
+      flex: 1;
+      min-width: 120px;
+      background: var(--gray-50);
+      padding: 16px 20px;
+      border-radius: var(--radius-sm);
+      text-align: center;
+    }
+    
+    .stat-card-main {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .stat-card-main .stat-value {
+      color: white;
+    }
+    
+    .stat-card-main .stat-label {
+      color: rgba(255,255,255,0.9);
+    }
+    
+    .stat-card-warn {
+      background: #FEF3C7;
+      border: 2px solid var(--warning);
+    }
+    
+    .stat-card-warn .stat-value {
+      color: #92400E;
+    }
+    
+    .stat-card-warn .stat-label {
+      color: #92400E;
+    }
+    
+    .stat-card-action {
+      background: var(--gray-100);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .stat-card-action:hover {
+      background: var(--gray-200);
+      transform: translateY(-2px);
+    }
+    
+    .stat-card-action .stat-value {
+      color: var(--gray-600);
+    }
+    
+    .stat-card-action .stat-value .material-icons {
+      font-size: 2rem;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      margin-top: 4px;
+    }
+    
+    /* メッセージ */
+    .message {
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .message-info {
+      background: #DBEAFE;
+      color: #1E40AF;
+    }
+    
+    .message-success {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+    
+    .message-error {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+    
+    /* ローディング */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--gray-500);
+    }
+    
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* 空の状態 */
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--gray-500);
+    }
+    
+    .empty-state .material-icons {
+      font-size: 48px;
+      color: var(--gray-300);
+      margin-bottom: 10px;
+    }
+    
+    /* ヘルプページ */
+    .help-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .help-header {
+      text-align: center;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--gray-200);
+    }
+    
+    .help-header h2 {
+      font-size: 1.5rem;
+      color: var(--gray-800);
+      margin-bottom: 12px;
+    }
+    
+    .help-header p {
+      color: var(--gray-600);
+      font-size: 1rem;
+    }
+    
+    .help-section {
+      margin-bottom: 32px;
+    }
+    
+    .help-section h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.2rem;
+      color: var(--primary);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--primary);
+    }
+    
+    .help-section h3 .material-icons {
+      font-size: 1.4rem;
+    }
+    
+    .help-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .help-flow-item {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+    }
+    
+    .help-flow-number {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    
+    .help-flow-content strong {
+      display: block;
+      color: var(--gray-800);
+      margin-bottom: 4px;
+    }
+    
+    .help-flow-content p {
+      color: var(--gray-600);
+      font-size: 0.9rem;
+      margin: 0;
+    }
+    
+    .help-card {
+      background: var(--gray-50);
+      padding: 20px;
+      border-radius: var(--radius-sm);
+    }
+    
+    .help-card h4 {
+      color: var(--gray-800);
+      font-size: 1rem;
+      margin: 0 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    
+    .help-card h4:not(:first-child) {
+      margin-top: 20px;
+    }
+    
+    .help-card ul, .help-card ol {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--gray-700);
+    }
+    
+    .help-card li {
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    
+    .help-card p {
+      color: var(--gray-700);
+      margin: 0 0 12px 0;
+      line-height: 1.6;
+    }
+    
+    .help-faq {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .help-faq-item {
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    
+    .help-faq-q {
+      background: var(--primary);
+      color: white;
+      padding: 12px 16px;
+      font-weight: 600;
+    }
+    
+    .help-faq-a {
+      padding: 16px;
+      color: var(--gray-700);
+      line-height: 1.6;
+    }
+    
+    .help-faq-a ul {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+    }
+    
+    .help-faq-a li {
+      margin-bottom: 4px;
+    }
+    
+    /* レスポンシブ - スマホ対応 */
+    @media (max-width: 768px) {
+      /* 全体の文字サイズを大きく */
+      html {
+        font-size: 16px;
+      }
+      
+      body {
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+      }
+      
+      .app-container {
+        padding: 8px;
+        max-width: 100%;
+      }
+      
+      /* ヘッダー */
+      .header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+        padding: 16px;
+        border-radius: 16px;
+        margin-bottom: 12px;
+      }
+      
+      .header h1 {
+        font-size: 1.3rem;
+      }
+      
+      /* タブナビゲーション - 3×2グリッド */
+      .tab-nav {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        padding: 8px;
+        border-radius: 16px;
+        margin-bottom: 12px;
+      }
+      
+      .tab-btn {
+        padding: 14px 8px;
+        font-size: 0.85rem;
+        border-radius: 12px;
+        justify-content: center;
+        flex-direction: column;
+        gap: 6px;
+        min-height: 70px;
+      }
+      
+      .tab-btn .material-icons {
+        font-size: 1.5rem;
+      }
+      
+      /* メインコンテンツ */
+      .main-content {
+        border-radius: 16px;
+      }
+      
+      .tab-panel {
+        padding: 16px;
+      }
+      
+      /* カード - 縦並び */
+      .card {
+        padding: 16px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+      }
+      
+      /* 生徒管理・講師不可の2カラムを1カラムに */
+      #tab-students > div,
+      #tab-blocks > div {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+      }
+      
+      /* フォームグリッド */
+      .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+      }
+      
+      /* フォーム要素を大きく */
+      .form-label {
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+      }
+      
+      .form-input, .form-select {
+        padding: 14px 16px;
+        font-size: 1rem;
+        border-radius: 10px;
+      }
+      
+      /* ボタン - より大きく、タップしやすく */
+      .btn {
+        padding: 16px 24px;
+        font-size: 1.05rem;
+        border-radius: 12px;
+        width: 100%;
+        justify-content: center;
+        min-height: 54px;
+      }
+      
+      .btn .material-icons {
+        font-size: 1.3rem;
+      }
+      
+      .btn-group {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      /* リストアイテム */
+     .list-item {
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+}
+
+.list-item-icon {
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+}
+
+.list-item-title {
+  font-size: 1rem;
+}
+
+.list-item-subtitle {
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+      
+      /* 曜日時間選択 */
+      .weekday-grid-new {
+        padding: 12px;
+      }
+      
+      .weekday-row {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 0;
+        gap: 8px;
+      }
+      
+      .weekday-label {
+        font-size: 1.1rem;
+        width: auto;
+      }
+      
+      .time-select-group {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      
+      .time-select {
+        padding: 10px 12px;
+        font-size: 1rem;
+      }
+      
+      .hour-select, .minute-select {
+        width: 70px;
+      }
+      
+      /* スケジュール作成 */
+/* スケジュール作成・時系列ビューの年月を1行に */
+/* スケジュール作成・時系列ビューの年月を1行に */
+.schedule-header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.schedule-header .form-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.schedule-header .form-label {
+  display: block;
+  order: 2;
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.schedule-header .form-input {
+  order: 1;
+  width: 55px !important;
+  padding: 8px 4px !important;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.schedule-header .btn {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
+.schedule-header .btn .material-icons {
+  font-size: 1rem;
+}
+
+/* 講師不可日程の年月を1行に */
+#tab-blocks .card > div[style*="padding:16px"] {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  align-items: center !important;
+}
+
+#tab-blocks .card > div[style*="padding:16px"] .form-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 2px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+#tab-blocks .card > div[style*="padding:16px"] .form-label {
+  display: block !important;
+  order: 2 !important;
+  font-size: 0.85rem !important;
+  color: var(--gray-600) !important;
+  margin: 0 !important;
+}
+
+#tab-blocks .card > div[style*="padding:16px"] .form-input {
+  order: 1 !important;
+  width: 55px !important;
+  padding: 8px 4px !important;
+  text-align: center;
+}
+
+#tab-blocks .card > div[style*="padding:16px"] .btn {
+  flex: 1 !important;
+  padding: 8px 10px !important;
+  font-size: 0.8rem !important;
+}
+      
+      /* 統計カード */
+      .stats {
+        flex-direction: row;
+        gap: 12px;
+      }
+      
+      .stat-card {
+        padding: 16px 12px;
+      }
+      
+      .stat-value {
+        font-size: 1.8rem;
+      }
+      
+      .stat-label {
+        font-size: 0.8rem;
+      }
+      
+      /* スケジュール結果 */
+      .schedule-result {
+        padding: 16px;
+        border-radius: 12px;
+      }
+      
+      .schedule-day-header {
+        font-size: 1.05rem;
+        padding: 12px 0;
+      }
+      
+      .schedule-item {
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.schedule-time {
+  font-size: 0.75rem;
+  min-width: auto;
+  width: auto;
+}
+
+.schedule-student {
+  font-size: 0.85rem;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-place {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+}
+      
+      /* 未割当リスト */
+      .unassigned-list {
+        padding: 16px;
+        border-radius: 12px;
+      }
+      
+      .unassigned-item {
+        padding: 14px;
+        font-size: 1rem;
+        border-radius: 10px;
+        margin-bottom: 8px;
+      }
+      
+      .unassigned-item .add-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.4rem;
+      }
+      
+      /* モーダル - フルスクリーン風 */
+      .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+      }
+      
+      .modal {
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 20px 20px 0 0;
+        width: 100%;
+      }
+      
+      .modal-header {
+        padding: 20px;
+      }
+      
+      .modal-title {
+        font-size: 1.2rem;
+      }
+      
+      .modal-close {
+        font-size: 2rem;
+        padding: 8px;
+      }
+      
+      .modal-body {
+        padding: 20px;
+      }
+      
+      .modal-body .form-group {
+        margin-bottom: 20px !important;
+      }
+      
+      .modal-body .form-label {
+        font-size: 1rem;
+        margin-bottom: 8px;
+        display: block;
+      }
+      
+      .modal-body .form-input,
+      .modal-body .form-select {
+        padding: 16px;
+        font-size: 1.1rem;
+      }
+      
+      .modal-body .time-select {
+        padding: 14px;
+        font-size: 1.1rem;
+        width: 80px;
+      }
+      
+      .modal-footer {
+        padding: 16px 20px 24px;
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .modal-footer .btn {
+        width: 100%;
+        padding: 16px;
+        font-size: 1.05rem;
+      }
+      
+      /* 空の状態 */
+      .empty-state {
+        padding: 40px 20px;
+      }
+      
+      .empty-state .material-icons {
+        font-size: 56px;
+      }
+      
+      .empty-state p {
+        font-size: 1rem;
+      }
+      
+      /* ローディング */
+      .loading {
+        padding: 40px 20px;
+        font-size: 1rem;
+      }
+      
+      /* メッセージ */
+      .message {
+        padding: 14px 16px;
+        font-size: 0.95rem;
+        border-radius: 10px;
+      }
+      
+      /* リストコンテナの高さ制限を解除 */
+      .list-container {
+        max-height: none;
+      }
+      
+      /* 生徒管理グリッド */
+      .student-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .student-list-scroll {
+        min-height: 300px;
+        max-height: 400px;
+      }
+      
+      /* 下書きモーダル */
+      .draft-modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+      }
+      
+      .draft-modal {
+        max-width: 100%;
+        border-radius: 24px 24px 0 0;
+      }
+      
+      .draft-modal-icon {
+        padding: 24px;
+      }
+      
+      .draft-modal-icon .material-icons {
+        font-size: 2.5rem;
+      }
+      
+      .draft-modal-content {
+        padding: 20px;
+      }
+      
+      .draft-modal-title {
+        font-size: 1.2rem;
+      }
+      
+      .draft-modal-buttons {
+        flex-direction: column;
+      }
+      
+      .draft-modal-buttons .btn {
+        width: 100%;
+        padding: 16px 20px;
+        font-size: 1.05rem;
+      }
+      
+      /* 一括操作バー */
+      .bulk-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 16px;
+      }
+      
+      .bulk-actions .btn {
+        width: 100%;
+      }
+      
+      .bulk-actions .checkbox-label {
+        font-size: 1rem;
+        padding: 8px 0;
+      }
+      
+      .bulk-actions .checkbox-label input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+      }
+
+      /* カードヘッダーのボタンをコンパクトに */
+.card-header .btn {
+  width: auto;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  min-height: auto;
+}
+
+.card-header .btn .material-icons {
+  font-size: 1rem;
+}
+
+.card-header {
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.card-title {
+  font-size: 1rem;
+  white-space: nowrap;
+}
+      
+      /* スケジュールアイテムのアクションボタン */
+      .schedule-item .item-actions {
+  width: auto;
+  justify-content: flex-end;
+  margin-top: 0;
+  gap: 4px;
+}
+
+.schedule-item .action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.schedule-item .action-btn .material-icons {
+  font-size: 0.9rem !important;
+}
+    }
+    
+    /* さらに小さい画面（iPhone SE など） */
+    @media (max-width: 375px) {
+      html {
+        font-size: 15px;
+      }
+      
+      .header h1 {
+        font-size: 1.2rem;
+      }
+      
+      .tab-btn {
+        padding: 12px 6px;
+        font-size: 0.8rem;
+        min-height: 65px;
+      }
+      
+      .tab-btn .material-icons {
+        font-size: 1.3rem;
+      }
+      
+      .time-select {
+        width: 65px !important;
+        padding: 10px 8px;
+      }
+      
+      .btn {
+        padding: 14px 16px;
+        min-height: 50px;
+      }
+      
+      .schedule-item .action-btn {
+        width: 44px;
+        height: 44px;
+      }
+    }
+
+    /* 年月入力を中央寄せ */
+.schedule-header .form-input,
+#block-year,
+#block-month {
+  text-align: center;
+}
+
+/* 講師不可日程の年月を1行に */
+#tab-blocks .card > div[style*="padding:16px"] {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  align-items: center !important;
+}
+
+#tab-blocks .card > div[style*="padding:16px"] .form-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 2px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+#tab-blocks .card > div[style*="padding:16px"] .form-label {
+  display: block !important;
+  order: 2 !important;
+  font-size: 0.85rem !important;
+  color: var(--gray-600) !important;
+  margin: 0 !important;
+}
+
+#tab-blocks .card > div[style*="padding:16px"] .form-input {
+  order: 1 !important;
+  width: 55px !important;
+  padding: 8px 4px !important;
+  text-align: center;
+}
+
+#tab-blocks .card > div[style*="padding:16px"] .btn {
+  flex: 1 !important;
+  padding: 8px 10px !important;
+  font-size: 0.8rem !important;
+}
+/* 検索ボックス */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--gray-100);
+  border-bottom: 3px solid var(--primary);
+  margin-bottom: 8px;
+}
+
+.search-box .material-icons {
+  color: var(--primary);
+}
+
+.search-box .form-input {
+  flex: 1;
+  border: none;
+  padding: 8px 12px;
+  font-size: 1rem;
+  background: white;
+  border-radius: 6px;
+}
+
+.search-box .form-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.search-box .material-icons {
+  color: var(--gray-400);
+}
+
+.search-box .form-input {
+  flex: 1;
+  border: none;
+  padding: 8px;
+  font-size: 1rem;
+}
+
+.search-box .form-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+    
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- ヘッダー -->
+    <header class="header">
+      <h1>
+        <span class="material-icons">event_note</span>
+        Shunta Lesson Scheduler
+      </h1>
+      <div id="connection-status" class="status-badge">
+        <span class="status-dot"></span>
+        <span>接続確認中...</span>
+      </div>
+    </header>
+    
+    <!-- タブナビゲーション -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="schedule">
+        <span class="material-icons">calendar_month</span>
+        スケジュール作成
+      </button>
+      <button class="tab-btn" data-tab="timeline">
+        <span class="material-icons">view_timeline</span>
+        時系列ビュー
+      </button>
+      <button class="tab-btn" data-tab="students">
+        <span class="material-icons">people</span>
+        生徒管理
+      </button>
+      <button class="tab-btn" data-tab="blocks">
+        <span class="material-icons">block</span>
+        講師不可日程
+      </button>
+      <button class="tab-btn" data-tab="settings">
+        <span class="material-icons">settings</span>
+        設定
+      </button>
+      <button class="tab-btn" data-tab="help">
+        <span class="material-icons">help</span>
+        使い方
+      </button>
+    </nav>
+    
+    <!-- メインコンテンツ -->
+    <main class="main-content">
+      <!-- スケジュール作成 -->
+      <div id="tab-schedule" class="tab-panel active">
+        <div class="schedule-header">
+          <div class="form-group">
+            <label class="form-label">年</label>
+            <input type="number" id="schedule-year" class="form-input" style="width:100px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">月</label>
+            <input type="number" id="schedule-month" class="form-input" min="1" max="12" style="width:80px">
+          </div>
+          <button class="btn btn-primary" onclick="generatePreview()">
+            <span class="material-icons">auto_fix_high</span>
+            スケジュール生成
+          </button>
+          <button class="btn btn-success" onclick="commitWithCalendar()" id="btn-commit" style="display:none;">
+            <span class="material-icons">event_available</span>
+            確定してカレンダー登録
+          </button>
+        </div>
+        
+        <div id="draft-notice" class="message message-info" style="display:none;">
+          <span class="material-icons">edit_note</span>
+          <span>下書きがあります。続きから編集できます。</span>
+          <button class="btn btn-secondary" style="margin-left:auto;padding:6px 12px;" onclick="clearDraft()">下書きを破棄</button>
+        </div>
+        
+        <div id="schedule-stats" class="stats" style="display:none;">
+          <div class="stat-card stat-card-main">
+            <div class="stat-value"><span id="stat-assigned">0</span> / <span id="stat-total">0</span></div>
+            <div class="stat-label">割当済み（<span id="stat-percent">0</span>%）</div>
+          </div>
+          <div class="stat-card stat-card-warn" id="stat-unassigned-card" style="display:none;">
+            <div class="stat-value" id="stat-unassigned">0</div>
+            <div class="stat-label">未割当コマ</div>
+          </div>
+          <div class="stat-card stat-card-action" onclick="openDetailModal()">
+            <div class="stat-value"><span class="material-icons">list_alt</span></div>
+            <div class="stat-label">詳細を見る</div>
+          </div>
+        </div>
+        
+        <div id="schedule-result" class="schedule-result">
+          <div class="empty-state">
+            <span class="material-icons">event_available</span>
+            <p>年月を選択して「スケジュール生成」をクリックしてください</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 時系列ビュー -->
+      <div id="tab-timeline" class="tab-panel">
+        <div class="schedule-header">
+          <div class="form-group">
+            <label class="form-label">年</label>
+            <input type="number" id="timeline-year" class="form-input" style="width:100px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">月</label>
+            <input type="number" id="timeline-month" class="form-input" min="1" max="12" style="width:80px">
+          </div>
+          <button class="btn btn-primary" onclick="loadTimeline()">
+            <span class="material-icons">search</span>
+            表示
+          </button>
+          <button class="btn btn-success" onclick="openTimelineAddModal()">
+            <span class="material-icons">add</span>
+            新規追加
+          </button>
+        </div>
+        
+        <div id="timeline-stats" class="stats" style="display:none;">
+          <div class="stat-card">
+            <div class="stat-value" id="timeline-count">0</div>
+            <div class="stat-label">登録済みレッスン</div>
+          </div>
+          <div class="stat-card" id="timeline-selected-stat" style="display:none;">
+            <div class="stat-value" id="timeline-selected-count">0</div>
+            <div class="stat-label">選択中</div>
+          </div>
+        </div>
+        
+        <!-- 一括操作バー -->
+        <div id="timeline-bulk-actions" class="bulk-actions" style="display:none;">
+          <label class="checkbox-label" style="margin-right:16px;">
+            <input type="checkbox" id="timeline-select-all" onchange="toggleSelectAllTimeline()">
+            <span>すべて選択</span>
+          </label>
+          <button class="btn btn-danger" onclick="deleteSelectedTimelines()">
+            <span class="material-icons">delete</span>
+            選択したレッスンを削除
+          </button>
+        </div>
+        
+        <div id="timeline-result" class="schedule-result">
+          <div class="empty-state">
+            <span class="material-icons">view_timeline</span>
+            <p>年月を選択して「表示」をクリックしてください</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 生徒管理 -->
+      <div id="tab-students" class="tab-panel">
+        <div class="student-grid">
+          <!-- 左：一覧 -->
+          <div class="card student-list-card">
+            <div class="card-header">
+  <h3 class="card-title">
+    <span class="material-icons">list</span>
+    生徒一覧
+  </h3>
+  <button class="btn btn-secondary" onclick="loadStudents()">
+    <span class="material-icons">refresh</span>
+    更新
+  </button>
+</div>
+<div class="search-box">
+  <span class="material-icons">search</span>
+  <input type="text" id="student-search" class="form-input" placeholder="名前で検索..." oninput="filterStudents()">
+</div>
+<div id="student-list" class="list-container student-list-scroll">
+              <div class="loading">
+                <div class="spinner"></div>
+                読み込み中...
+              </div>
+            </div>
+          </div>
+          
+          <!-- 右：フォーム -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <span class="material-icons">edit</span>
+                <span id="student-form-title">新規登録</span>
+              </h3>
+            </div>
+            <form id="student-form" onsubmit="event.preventDefault(); saveStudent();">
+              <!-- 生徒番号は非表示（自動採番） -->
+              <input type="hidden" name="生徒番号">
+              
+              <div class="form-grid">
+                <div class="form-group" id="student-id-display" style="display:none;">
+                  <label class="form-label">生徒番号</label>
+                  <div class="form-input" style="background:var(--gray-100);color:var(--gray-600);" id="student-id-value">-</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">氏名 *</label>
+                  <input type="text" name="氏名" class="form-input" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">月コマ数</label>
+                  <input type="number" name="月コマ数" class="form-input" min="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">レッスン分</label>
+                  <input type="number" name="レッスン分" class="form-input" min="5" step="5">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">第1希望場所</label>
+                  <select name="第1希望場所" class="form-select place-select"></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">第2希望場所</label>
+                  <select name="第2希望場所" class="form-select place-select"></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">第3希望場所</label>
+                  <select name="第3希望場所" class="form-select place-select"></select>
+                </div>
+                <div class="form-group">
+                  <label class="checkbox-wrapper">
+                    <input type="checkbox" name="月内除外">
+                    <span>今月は除外</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div style="margin-top:20px;">
+                <label class="form-label">曜日ごとの希望時間帯（開始〜終了）</label>
+                <div class="weekday-grid-new">
+                  <div class="weekday-row">
+                    <span class="weekday-label">月</span>
+                    <div class="time-select-group">
+                      <select name="月_開始_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="月_開始_m" class="time-select minute-select"><option value="">--</option></select>
+                      <span>〜</span>
+                      <select name="月_終了_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="月_終了_m" class="time-select minute-select"><option value="">--</option></select>
+                    </div>
+                  </div>
+                  <div class="weekday-row">
+                    <span class="weekday-label">火</span>
+                    <div class="time-select-group">
+                      <select name="火_開始_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="火_開始_m" class="time-select minute-select"><option value="">--</option></select>
+                      <span>〜</span>
+                      <select name="火_終了_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="火_終了_m" class="time-select minute-select"><option value="">--</option></select>
+                    </div>
+                  </div>
+                  <div class="weekday-row">
+                    <span class="weekday-label">水</span>
+                    <div class="time-select-group">
+                      <select name="水_開始_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="水_開始_m" class="time-select minute-select"><option value="">--</option></select>
+                      <span>〜</span>
+                      <select name="水_終了_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="水_終了_m" class="time-select minute-select"><option value="">--</option></select>
+                    </div>
+                  </div>
+                  <div class="weekday-row">
+                    <span class="weekday-label">木</span>
+                    <div class="time-select-group">
+                      <select name="木_開始_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="木_開始_m" class="time-select minute-select"><option value="">--</option></select>
+                      <span>〜</span>
+                      <select name="木_終了_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="木_終了_m" class="time-select minute-select"><option value="">--</option></select>
+                    </div>
+                  </div>
+                  <div class="weekday-row">
+                    <span class="weekday-label">金</span>
+                    <div class="time-select-group">
+                      <select name="金_開始_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="金_開始_m" class="time-select minute-select"><option value="">--</option></select>
+                      <span>〜</span>
+                      <select name="金_終了_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="金_終了_m" class="time-select minute-select"><option value="">--</option></select>
+                    </div>
+                  </div>
+                  <div class="weekday-row">
+                    <span class="weekday-label">土</span>
+                    <div class="time-select-group">
+                      <select name="土_開始_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="土_開始_m" class="time-select minute-select"><option value="">--</option></select>
+                      <span>〜</span>
+                      <select name="土_終了_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="土_終了_m" class="time-select minute-select"><option value="">--</option></select>
+                    </div>
+                  </div>
+                  <div class="weekday-row">
+                    <span class="weekday-label">日</span>
+                    <div class="time-select-group">
+                      <select name="日_開始_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="日_開始_m" class="time-select minute-select"><option value="">--</option></select>
+                      <span>〜</span>
+                      <select name="日_終了_h" class="time-select hour-select"><option value="">--</option></select>
+                      <span>:</span>
+                      <select name="日_終了_m" class="time-select minute-select"><option value="">--</option></select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="btn-group" style="margin-top:20px;">
+                <button type="submit" class="btn btn-primary">
+                  <span class="material-icons">save</span>
+                  保存
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="clearStudentForm()">
+                  <span class="material-icons">clear</span>
+                  クリア
+                </button>
+                <button type="button" class="btn btn-danger" onclick="deleteStudent()">
+                  <span class="material-icons">delete</span>
+                  削除
+                </button>
+              </div>
+            </form>
+            <div id="student-message"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 講師不可日程 -->
+      <div id="tab-blocks" class="tab-panel">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+          <!-- 左：一覧 -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <span class="material-icons">list</span>
+                不可日程一覧
+              </h3>
+            </div>
+            <!-- 年月選択 -->
+            <div style="padding:16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label" style="margin-bottom:4px;">年</label>
+                <input type="number" id="block-year" class="form-input" style="width:90px;">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label" style="margin-bottom:4px;">月</label>
+                <input type="number" id="block-month" class="form-input" min="1" max="12" style="width:70px;">
+              </div>
+              <button class="btn btn-primary" onclick="loadBlocks()" style="margin-top:auto;">
+                <span class="material-icons">search</span>
+                表示
+              </button>
+            </div>
+            <div id="block-list" class="list-container">
+              <div class="empty-state">
+                <span class="material-icons">event_available</span>
+                <p>年月を選択して「表示」をクリック</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 右：フォーム -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <span class="material-icons">edit</span>
+                <span id="block-form-title">新規登録</span>
+              </h3>
+            </div>
+            <form id="block-form" onsubmit="event.preventDefault(); saveBlock();">
+              <input type="hidden" name="_row">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">日付 *</label>
+                  <input type="date" name="日付" class="form-input" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">場所（空欄＝全場所）</label>
+                  <select name="場所" class="form-select place-select"></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">不可開始</label>
+                  <input type="time" name="不可開始" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">不可終了</label>
+                  <input type="time" name="不可終了" class="form-input">
+                </div>
+              </div>
+              <p style="font-size:0.85rem; color:var(--gray-500); margin-top:10px;">
+                ※ 時間を空欄にすると終日不可になります
+              </p>
+              
+              <div class="btn-group" style="margin-top:20px;">
+                <button type="submit" class="btn btn-primary">
+                  <span class="material-icons">save</span>
+                  保存
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="clearBlockForm()">
+                  <span class="material-icons">clear</span>
+                  クリア
+                </button>
+                <button type="button" class="btn btn-danger" onclick="deleteBlock()">
+                  <span class="material-icons">delete</span>
+                  削除
+                </button>
+              </div>
+            </form>
+            <div id="block-message"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 設定 -->
+      <div id="tab-settings" class="tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <span class="material-icons">settings</span>
+              カレンダー設定
+            </h3>
+          </div>
+          <div style="padding:20px;">
+            <div class="message message-info" style="margin-bottom:20px;">
+              <span class="material-icons">info</span>
+              <span>スケジュールを登録するGoogleカレンダーのIDを設定します</span>
+            </div>
+            
+            <div class="form-group" style="margin-bottom:20px;">
+              <label class="form-label">カレンダーID</label>
+              <input type="text" id="settings-calendar-id" class="form-input" placeholder="例: abc123@group.calendar.google.com">
+              <p style="font-size:0.85rem;color:var(--gray-500);margin-top:8px;">
+                空欄の場合は「レッスンスケジュール」カレンダーを自動作成します
+              </p>
+            </div>
+            
+            <div id="settings-current" style="padding:16px;background:var(--gray-50);border-radius:8px;margin-bottom:20px;display:none;">
+              <p style="font-size:0.9rem;color:var(--gray-600);margin:0;">
+                <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px;">check_circle</span>
+                現在の設定: <strong id="settings-calendar-name">-</strong>
+              </p>
+            </div>
+            
+            <button class="btn btn-primary" onclick="saveSettings()" style="width:auto;">
+              <span class="material-icons">save</span>
+              保存
+            </button>
+            
+            <div id="settings-message" style="margin-top:16px;"></div>
+            
+            <hr style="margin:30px 0;border:none;border-top:1px solid var(--gray-200);">
+            
+            <h4 style="margin-bottom:16px;color:var(--gray-700);">
+              <span class="material-icons" style="font-size:1.2rem;vertical-align:middle;margin-right:8px;">help</span>
+              カレンダーIDの確認方法
+            </h4>
+            <ol style="font-size:0.9rem;color:var(--gray-600);line-height:1.8;padding-left:20px;">
+              <li>Googleカレンダーを開く</li>
+              <li>左側のカレンダーリストで、使用したいカレンダーの「︙」をクリック</li>
+              <li>「設定と共有」を選択</li>
+              <li>「カレンダーの統合」セクションまでスクロール</li>
+              <li>「カレンダーID」をコピー</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 使い方 -->
+      <div id="tab-help" class="tab-panel">
+        <div class="help-container">
+          <div class="help-header">
+            <h2>🥁 Shunta Lesson Scheduler 使い方ガイド</h2>
+            <p>このアプリは、生徒のレッスンスケジュールを自動で作成し、Googleカレンダーに登録できるツールです。</p>
+          </div>
+          
+          <div class="help-section">
+            <h3><span class="material-icons">phone_iphone</span> ホーム画面に追加する</h3>
+            <div class="help-card">
+              <p>このアプリをスマホのホーム画面に追加すると、アプリのようにすぐに起動できます。</p>
+              
+              <h4>iPhoneの場合（Safari）</h4>
+              <ol>
+                <li>このページをSafariで開く</li>
+                <li>画面下の共有ボタン（□↑）をタップ</li>
+                <li>「ホーム画面に追加」を選択</li>
+                <li>名前を確認して「追加」をタップ</li>
+              </ol>
+              
+              <h4>Androidの場合（Chrome）</h4>
+              <ol>
+                <li>このページをChromeで開く</li>
+                <li>右上のメニュー（︙）をタップ</li>
+                <li>「ホーム画面に追加」を選択</li>
+                <li>「追加」をタップ</li>
+              </ol>
+            </div>
+          </div>
+          
+          <div class="help-section">
+            <h3><span class="material-icons">security</span> 初回アクセス時の許可について</h3>
+            <div class="help-card">
+              <p>初めてアプリを使う時に、Googleの確認画面が表示されることがあります。これは正常な動作です。</p>
+              
+              <h4>「このアプリは確認されていません」と表示されたら</h4>
+              <ol>
+                <li>「詳細」または「Advanced」をクリック</li>
+                <li>「〇〇（安全でないページ）に移動」をクリック</li>
+                <li>アクセス許可の内容を確認して「許可」をクリック</li>
+              </ol>
+              
+              <p style="margin-top:16px; padding:12px; background:#FEF3C7; border-radius:8px;">
+                <strong>💡 なぜ表示されるの？</strong><br>
+                このアプリがGoogleカレンダーやスプレッドシートにアクセスするために許可が必要です。一度許可すれば、次回以降は表示されません。
+              </p>
+            </div>
+          </div>
+          
+          <div class="help-section">
+            <h3><span class="material-icons">rocket_launch</span> 基本の流れ</h3>
+            <div class="help-flow">
+              <div class="help-flow-item">
+                <div class="help-flow-number">1</div>
+                <div class="help-flow-content">
+                  <strong>生徒情報を登録</strong>
+                  <p>「生徒管理」タブで生徒の情報（名前、月コマ数、希望時間など）を登録します</p>
+                </div>
+              </div>
+              <div class="help-flow-item">
+                <div class="help-flow-number">2</div>
+                <div class="help-flow-content">
+                  <strong>講師の不可日程を登録</strong>
+                  <p>「講師不可日程」タブでレッスンができない日時を登録します</p>
+                </div>
+              </div>
+              <div class="help-flow-item">
+                <div class="help-flow-number">3</div>
+                <div class="help-flow-content">
+                  <strong>スケジュールを自動生成</strong>
+                  <p>「スケジュール作成」タブで年月を選び「スケジュール生成」ボタンを押します</p>
+                </div>
+              </div>
+              <div class="help-flow-item">
+                <div class="help-flow-number">4</div>
+                <div class="help-flow-content">
+                  <strong>微調整して確定</strong>
+                  <p>必要に応じて手動で調整し、「確定してカレンダー登録」を押します</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="help-section">
+            <h3><span class="material-icons">calendar_month</span> スケジュール作成タブ</h3>
+            <div class="help-card">
+              <h4>自動生成のしくみ</h4>
+              <ul>
+                <li>各生徒の希望時間帯・月コマ数をもとに自動で割り当て</li>
+                <li>同じ生徒は<strong>中3日</strong>空けて配置</li>
+                <li>場所ごとに移動時間を考慮（長堀↔吹田は90分バッファ）</li>
+                <li>できるだけ稼働日を少なくするよう最適化</li>
+              </ul>
+              
+              <h4>画面の見方</h4>
+              <ul>
+                <li><strong>統計カード</strong>：割当済み/総コマ数、未割当数を表示</li>
+                <li><strong>詳細を見る</strong>：生徒ごとの割当状況を確認</li>
+                <li><strong>レッスン一覧</strong>：日ごとに割り当てられたレッスンを表示</li>
+              </ul>
+              
+              <h4>編集方法</h4>
+              <ul>
+                <li>レッスンをタップ → 日時・場所を変更、または削除</li>
+                <li>「未割当の生徒」をタップ → 手動でレッスンを追加</li>
+              </ul>
+              
+              <h4>下書き機能</h4>
+              <ul>
+                <li>生成・編集した内容は自動で下書き保存されます</li>
+                <li>途中で画面を閉じても、次回開いた時に続きから編集できます</li>
+                <li>「スケジュール生成」を再度押すと、一から組み直しになります</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="help-section">
+            <h3><span class="material-icons">view_timeline</span> 時系列ビュータブ</h3>
+            <div class="help-card">
+              <p>確定後のスケジュールを確認・編集するための画面です。</p>
+              <ul>
+                <li>年月を選んで「表示」ボタンで読み込み</li>
+                <li>レッスンをタップして編集・削除</li>
+                <li>「新規追加」ボタンで手動追加</li>
+                <li>編集・削除するとGoogleカレンダーも自動で更新されます</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="help-section">
+            <h3><span class="material-icons">people</span> 生徒管理タブ</h3>
+            <div class="help-card">
+              <h4>必須項目</h4>
+              <ul>
+                <li><strong>氏名</strong>：生徒の名前</li>
+                <li><strong>月コマ数</strong>：1ヶ月のレッスン回数</li>
+                <li><strong>レッスン分</strong>：1回あたりの時間（分）</li>
+              </ul>
+              
+              <h4>希望時間の設定</h4>
+              <ul>
+                <li>曜日ごとに「何時から何時まで」来られるかを設定</li>
+                <li>設定しない曜日はレッスンが入りません</li>
+              </ul>
+              
+              <h4>その他</h4>
+              <ul>
+                <li><strong>希望場所</strong>：第1〜第3希望まで設定可能</li>
+                <li><strong>月内除外</strong>：チェックを入れるとその月はスケジュール対象外に</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="help-section">
+            <h3><span class="material-icons">block</span> 講師不可日程タブ</h3>
+            <div class="help-card">
+              <p>レッスンを入れられない日時を登録します。</p>
+              <ul>
+                <li><strong>終日不可</strong>：その日は全時間帯でレッスンなし</li>
+                <li><strong>時間指定</strong>：特定の時間帯のみ不可</li>
+                <li><strong>場所指定</strong>：特定の場所のみ不可（空欄なら全場所）</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="help-section">
+            <h3><span class="material-icons">settings</span> 設定タブ</h3>
+            <div class="help-card">
+              <h4>カレンダーIDの設定</h4>
+              <p>スケジュールを登録するGoogleカレンダーを指定します。</p>
+              <ol>
+                <li>Googleカレンダーを開く</li>
+                <li>左のカレンダーリストで対象カレンダーの「︙」→「設定と共有」</li>
+                <li>「カレンダーの統合」までスクロール</li>
+                <li>「カレンダーID」をコピーして貼り付け</li>
+              </ol>
+              <p style="margin-top:12px;"><strong>💡 空欄の場合</strong>：「レッスンスケジュール」という名前のカレンダーが自動作成されます。</p>
+            </div>
+          </div>
+          
+          <div class="help-section">
+            <h3><span class="material-icons">quiz</span> よくある質問</h3>
+            <div class="help-faq">
+              <div class="help-faq-item">
+                <div class="help-faq-q">Q. 未割当の生徒が出てしまう</div>
+                <div class="help-faq-a">A. 以下の原因が考えられます：
+                  <ul>
+                    <li>生徒の希望時間帯が狭すぎる</li>
+                    <li>講師の不可日程が多い</li>
+                    <li>同じ時間帯に希望が集中している</li>
+                  </ul>
+                  「未割当の生徒」をタップして手動で割り当てることもできます。
+                </div>
+              </div>
+              
+              <div class="help-faq-item">
+                <div class="help-faq-q">Q. カレンダーに登録されない</div>
+                <div class="help-faq-a">A. 設定タブでカレンダーIDが正しく設定されているか確認してください。また、初回は権限の許可が必要な場合があります。</div>
+              </div>
+              
+              <div class="help-faq-item">
+                <div class="help-faq-q">Q. 確定後にスケジュールを変更したい</div>
+                <div class="help-faq-a">A. 「時系列ビュー」タブで編集できます。変更はGoogleカレンダーにも自動で反映されます。</div>
+              </div>
+              
+              <div class="help-faq-item">
+                <div class="help-faq-q">Q. 下書きを消したい</div>
+                <div class="help-faq-a">A. 「下書きがあります」の横にある「下書きを破棄」ボタンを押してください。または「スケジュール生成」を押すと新しく作り直せます。</div>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ========== API設定 ==========
+const API_URL = 'https://script.google.com/macros/s/AKfycbzkjnOQ1Ji4ugveu_QNlperA1KUt82xtDIK0VzjJYLyyXBUFFBk-pmi44SH9Lx8nPDD9Q/exec';
+
+// fetch用のヘルパー関数
+async function apiGet(action, params = {}) {
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    redirect: 'follow'
+  });
+  return res.json();
+}
+
+async function apiPost(action, data = {}) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action, ...data })
+  });
+  return res.json();
+}
+    // ========== 初期化 ==========
+    document.addEventListener('DOMContentLoaded', function() {
+      initApp();
+    });
+    
+    function initApp() {
+      // 年月の初期値
+      const now = new Date();
+      document.getElementById('schedule-year').value = now.getFullYear();
+      document.getElementById('schedule-month').value = now.getMonth() + 1;
+      
+      // タブ切替
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+      
+      // 時間プルダウンの初期化
+      initTimeSelects();
+      
+      // 接続確認
+      checkConnection();
+      
+      // データ読み込み
+      loadPlaces();
+      loadStudents();
+      // loadBlocks(); // 年月選択後に読み込むので自動実行しない
+      loadSettings();
+      
+      // 時系列ビューの年月も初期化
+      document.getElementById('timeline-year').value = now.getFullYear();
+      document.getElementById('timeline-month').value = now.getMonth() + 1;
+      
+      // 講師不可日程の年月も初期化
+      document.getElementById('block-year').value = now.getFullYear();
+      document.getElementById('block-month').value = now.getMonth() + 1;
+      
+      // 下書きがあれば読み込み
+      loadDraft();
+    }
+    
+    // 時間プルダウン初期化
+    function initTimeSelects() {
+      // 時（0〜24）
+      const hourOptions = '<option value="">--</option>' + 
+        Array.from({length: 25}, (_, i) => `<option value="${i}">${String(i).padStart(2, '0')}</option>`).join('');
+      
+      // 分（00, 05, 10, ... 55）
+      const minuteOptions = '<option value="">--</option>' + 
+        Array.from({length: 12}, (_, i) => i * 5).map(m => `<option value="${m}">${String(m).padStart(2, '0')}</option>`).join('');
+      
+      document.querySelectorAll('.hour-select').forEach(sel => {
+        sel.innerHTML = hourOptions;
+      });
+      
+      document.querySelectorAll('.minute-select').forEach(sel => {
+        sel.innerHTML = minuteOptions;
+      });
+    }
+    
+    // ========== 接続確認 ==========
+function checkConnection() {
+  apiGet('ping')
+    .then(result => {
+      const el = document.getElementById('connection-status');
+      if (result && result.ok) {
+        el.className = 'status-badge connected';
+        el.innerHTML = '<span class="status-dot"></span><span>接続中</span>';
+      } else {
+        el.innerHTML = '<span class="status-dot"></span><span>接続エラー</span>';
+      }
+    })
+    .catch(err => {
+      const el = document.getElementById('connection-status');
+      el.innerHTML = '<span class="status-dot"></span><span>接続エラー</span>';
+    });
+}
+    
+    // ========== タブ切替 ==========
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+      });
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === 'tab-' + tabId);
+      });
+    }
+    
+    // ========== 場所マスタ読み込み ==========
+function loadPlaces() {
+  apiGet('getPlaces')
+    .then(result => {
+      const places = (result && result.places) || [];
+      const selects = document.querySelectorAll('.place-select');
+      selects.forEach(sel => {
+        sel.innerHTML = '<option value="">-- 選択 --</option>' + 
+          places.map(p => `<option value="${p}">${p}</option>`).join('');
+      });
+    })
+    .catch(err => {
+      console.error('場所読み込みエラー:', err);
+    });
+}
+    
+    // ========== 生徒管理 ==========
+   function loadStudents() {
+  const container = document.getElementById('student-list');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  
+  apiGet('getStudents')
+    .then(result => {
+      const students = (result && result.students) || [];
+      allStudents = students; // ★ 検索用に保持
+      document.getElementById('student-search').value = ''; // ★ 検索欄クリア
+      
+      if (students.length === 0) {
+        container.innerHTML = '<div class="empty-state"><span class="material-icons">person_off</span><p>生徒が登録されていません</p></div>';
+        return;
+      }
+      
+      container.innerHTML = students.map(s => `
+        <div class="list-item" onclick='selectStudent(${JSON.stringify(s).replace(/'/g, "\\'")})'>
+          <div class="list-item-icon">${(s['氏名'] || '?')[0]}</div>
+          <div class="list-item-content">
+            <div class="list-item-title">${s['氏名'] || '名前なし'}</div>
+            <div class="list-item-subtitle">
+              ${s['第1希望場所'] || '-'} ｜ ${s['月コマ数'] || 0}コマ ｜ ${s['レッスン分'] || 0}分
+            </div>
+          </div>
+        </div>
+      `).join('');
+    })
+    .catch(err => {
+      container.innerHTML = `<div class="message message-error">読み込みエラー: ${err.message}</div>`;
+    });
+}
+
+    // 生徒検索フィルター
+let allStudents = []; // 全生徒データを保持
+
+function filterStudents() {
+  const query = document.getElementById('student-search').value.toLowerCase();
+  const container = document.getElementById('student-list');
+  
+  if (!allStudents.length) return;
+  
+  const filtered = query 
+    ? allStudents.filter(s => (s['氏名'] || '').toLowerCase().includes(query))
+    : allStudents;
+  
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state"><span class="material-icons">search_off</span><p>該当する生徒がいません</p></div>';
+    return;
+  }
+  
+  container.innerHTML = filtered.map(s => `
+    <div class="list-item" onclick='selectStudent(${JSON.stringify(s).replace(/'/g, "\\'")})'> 
+      <div class="list-item-icon">${(s['氏名'] || '?')[0]}</div>
+      <div class="list-item-content">
+        <div class="list-item-title">${s['氏名'] || '名前なし'}</div>
+        <div class="list-item-subtitle">
+          ${s['第1希望場所'] || '-'} ｜ ${s['月コマ数'] || 0}コマ ｜ ${s['レッスン分'] || 0}分
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+    
+    function selectStudent(student) {
+      document.getElementById('student-form-title').textContent = '編集';
+      const form = document.getElementById('student-form');
+      
+      // 生徒番号表示
+      document.getElementById('student-id-display').style.display = 'block';
+      document.getElementById('student-id-value').textContent = student['生徒番号'] || '-';
+      form['生徒番号'].value = student['生徒番号'] || '';
+      
+      // リストのハイライト
+      document.querySelectorAll('#student-list .list-item').forEach(el => {
+        el.classList.remove('selected');
+        if (el.querySelector('.list-item-title').textContent === student['氏名']) {
+          el.classList.add('selected');
+        }
+      });
+      
+      // 通常フィールド
+      const timeFields = ['月_開始', '月_終了', '火_開始', '火_終了', '水_開始', '水_終了', 
+                          '木_開始', '木_終了', '金_開始', '金_終了', '土_開始', '土_終了', '日_開始', '日_終了'];
+      
+      for (const el of form.elements) {
+        if (!el.name || el.name === '生徒番号') continue;
+        
+        // 時間フィールドは別処理
+        if (el.name.endsWith('_h') || el.name.endsWith('_m')) continue;
+        
+        if (el.type === 'checkbox') {
+          el.checked = String(student[el.name]).toUpperCase() === 'TRUE';
+        } else {
+          el.value = student[el.name] || '';
+        }
+      }
+      
+      // 時間フィールドを分解してセット
+      const days = ['月', '火', '水', '木', '金', '土', '日'];
+      days.forEach(day => {
+        ['開始', '終了'].forEach(type => {
+          const timeVal = student[`${day}_${type}`] || '';
+          const hSelect = form[`${day}_${type}_h`];
+          const mSelect = form[`${day}_${type}_m`];
+          
+          if (timeVal && timeVal.includes(':')) {
+            const [h, m] = timeVal.split(':');
+            hSelect.value = parseInt(h, 10);
+            // 分は5分刻みに丸める
+            const minutes = parseInt(m, 10);
+            const roundedMinutes = Math.round(minutes / 5) * 5;
+            mSelect.value = roundedMinutes >= 60 ? 55 : roundedMinutes;
+          } else {
+            hSelect.value = '';
+            mSelect.value = '';
+          }
+        });
+      });
+    }
+    
+    function clearStudentForm() {
+      document.getElementById('student-form').reset();
+      document.getElementById('student-form-title').textContent = '新規登録';
+      document.getElementById('student-id-display').style.display = 'none';
+      document.getElementById('student-id-value').textContent = '-';
+      document.querySelector('#student-form input[name="生徒番号"]').value = '';
+      document.querySelectorAll('#student-list .list-item').forEach(el => el.classList.remove('selected'));
+      showMessage('student-message', '', '');
+    }
+    
+    function saveStudent() {
+  const form = document.getElementById('student-form');
+  const data = {};
+  
+  // 通常フィールド
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    if (el.name.endsWith('_h') || el.name.endsWith('_m')) continue;
+    
+    if (el.type === 'checkbox') {
+      data[el.name] = el.checked ? 'TRUE' : '';
+    } else {
+      data[el.name] = el.value;
+    }
+  }
+  
+  // 時間フィールドを結合
+  const days = ['月', '火', '水', '木', '金', '土', '日'];
+  days.forEach(day => {
+    ['開始', '終了'].forEach(type => {
+      const h = form[`${day}_${type}_h`].value;
+      const m = form[`${day}_${type}_m`].value;
+      if (h !== '' && m !== '') {
+        data[`${day}_${type}`] = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      } else {
+        data[`${day}_${type}`] = '';
+      }
+    });
+  });
+  
+  showMessage('student-message', '保存中...', 'info');
+  
+  apiPost('saveStudent', { data })
+    .then(result => {
+      if (result && result.ok) {
+        const msg = result.isNew ? `保存しました（生徒番号: ${result.studentId}）` : '保存しました';
+        showMessage('student-message', msg, 'success');
+        loadStudents();
+        clearStudentForm();
+      } else {
+        showMessage('student-message', 'エラー: ' + (result.error || '不明'), 'error');
+      }
+    })
+    .catch(err => {
+      showMessage('student-message', 'エラー: ' + err.message, 'error');
+    });
+}
+    
+    function deleteStudent() {
+  const id = document.querySelector('#student-form input[name="生徒番号"]').value;
+  if (!id) {
+    showMessage('student-message', '削除する生徒を一覧から選択してください', 'error');
+    return;
+  }
+  
+  const name = document.querySelector('#student-form input[name="氏名"]').value;
+  if (!confirm(`「${name}」を削除しますか？`)) return;
+  
+  apiPost('deleteStudent', { studentId: id })
+    .then(result => {
+      if (result && result.ok) {
+        showMessage('student-message', '削除しました', 'success');
+        loadStudents();
+        clearStudentForm();
+      } else {
+        showMessage('student-message', 'エラー: ' + (result.error || '不明'), 'error');
+      }
+    })
+    .catch(err => {
+      showMessage('student-message', 'エラー: ' + err.message, 'error');
+    });
+}
+    
+    function loadBlocks() {
+  const year = parseInt(document.getElementById('block-year').value);
+  const month = parseInt(document.getElementById('block-month').value);
+  
+  if (!year || !month) {
+    alert('年月を入力してください');
+    return;
+  }
+  
+  const container = document.getElementById('block-list');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  
+  apiGet('getBlocks')
+    .then(result => {
+      const allBlocks = (result && result.blocks) || [];
+      
+      const blocks = allBlocks.filter(b => {
+        if (!b['日付']) return false;
+        const dateStr = b['日付'];
+        const parts = dateStr.split(/[\/\-]/);
+        if (parts.length < 2) return false;
+        const blockYear = parseInt(parts[0]);
+        const blockMonth = parseInt(parts[1]);
+        return blockYear === year && blockMonth === month;
+      });
+      
+      if (blocks.length === 0) {
+        container.innerHTML = `<div class="empty-state"><span class="material-icons">event_available</span><p>${year}年${month}月の不可日程はありません</p></div>`;
+        return;
+      }
+      
+      blocks.sort((a, b) => (a['日付'] || '').localeCompare(b['日付'] || ''));
+      
+      container.innerHTML = blocks.map(b => `
+        <div class="list-item" onclick='selectBlock(${JSON.stringify(b).replace(/'/g, "\\'")})'>
+          <div class="list-item-icon"><span class="material-icons">block</span></div>
+          <div class="list-item-content">
+            <div class="list-item-title">${b['日付'] || '日付なし'}</div>
+            <div class="list-item-subtitle">
+              ${b['不可開始'] && b['不可終了'] ? b['不可開始'] + ' - ' + b['不可終了'] : '終日'} 
+              ${b['場所'] ? '｜ ' + b['場所'] : '｜ 全場所'}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    })
+    .catch(err => {
+      container.innerHTML = `<div class="message message-error">読み込みエラー: ${err.message}</div>`;
+    });
+}
+    
+    function selectBlock(block) {
+      document.getElementById('block-form-title').textContent = '編集';
+      const form = document.getElementById('block-form');
+      
+      form['_row'].value = block._row || '';
+      
+      // 日付を yyyy-MM-dd 形式に変換
+      let dateVal = block['日付'] || '';
+      if (dateVal.includes('/')) {
+        dateVal = dateVal.replace(/\//g, '-');
+      }
+      form['日付'].value = dateVal;
+      
+      form['不可開始'].value = block['不可開始'] || '';
+      form['不可終了'].value = block['不可終了'] || '';
+      form['場所'].value = block['場所'] || '';
+    }
+    
+    function clearBlockForm() {
+      document.getElementById('block-form').reset();
+      document.getElementById('block-form-title').textContent = '新規登録';
+      showMessage('block-message', '', '');
+    }
+    
+    function saveBlock() {
+  const form = document.getElementById('block-form');
+  const data = {
+    _row: form['_row'].value,
+    日付: form['日付'].value,
+    不可開始: form['不可開始'].value,
+    不可終了: form['不可終了'].value,
+    場所: form['場所'].value
+  };
+  
+  showMessage('block-message', '保存中...', 'info');
+  
+  apiPost('saveBlock', { data })
+    .then(result => {
+      if (result && result.ok) {
+        showMessage('block-message', '保存しました', 'success');
+        loadBlocks();
+        clearBlockForm();
+      } else {
+        showMessage('block-message', 'エラー: ' + (result.error || '不明'), 'error');
+      }
+    })
+    .catch(err => {
+      showMessage('block-message', 'エラー: ' + err.message, 'error');
+    });
+}
+    
+    function deleteBlock() {
+  const row = document.querySelector('#block-form input[name="_row"]').value;
+  if (!row) {
+    showMessage('block-message', '削除する日程を選択してください', 'error');
+    return;
+  }
+  
+  if (!confirm('この不可日程を削除しますか？')) return;
+  
+  apiPost('deleteBlock', { rowNumber: row })
+    .then(result => {
+      if (result && result.ok) {
+        showMessage('block-message', '削除しました', 'success');
+        loadBlocks();
+        clearBlockForm();
+      } else {
+        showMessage('block-message', 'エラー: ' + (result.error || '不明'), 'error');
+      }
+    })
+    .catch(err => {
+      showMessage('block-message', 'エラー: ' + err.message, 'error');
+    });
+}
+    
+    // ========== スケジュール生成 ==========
+    function generatePreview() {
+  const year = parseInt(document.getElementById('schedule-year').value);
+  const month = parseInt(document.getElementById('schedule-month').value);
+  
+  if (!year || !month) {
+    alert('年月を入力してください');
+    return;
+  }
+  
+  const resultEl = document.getElementById('schedule-result');
+  resultEl.innerHTML = '<div class="loading"><div class="spinner"></div>スケジュール生成中...</div>';
+  document.getElementById('schedule-stats').style.display = 'none';
+  document.getElementById('btn-commit').style.display = 'none';
+  document.getElementById('draft-notice').style.display = 'none';
+  
+  apiGet('preview', { year, month })
+    .then(result => {
+      if (!result || !result.ok) {
+        resultEl.innerHTML = `<div class="message message-error">エラー: ${result?.error || '不明'}</div>`;
+        return;
+      }
+      
+      currentScheduleData = {
+        items: result.items || [],
+        unassigned: result.unassigned || [],
+        studentDetails: result.studentDetails || []
+      };
+      
+      const assigned = result.stats?.totalAssigned || 0;
+      const unassignedCount = result.stats?.totalUnassigned || 0;
+      const total = assigned + unassignedCount;
+      const percent = total > 0 ? Math.round((assigned / total) * 100) : 0;
+      
+      document.getElementById('schedule-stats').style.display = 'flex';
+      document.getElementById('stat-assigned').textContent = assigned;
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-percent').textContent = percent;
+      document.getElementById('stat-unassigned').textContent = unassignedCount;
+      
+      const unassignedCard = document.getElementById('stat-unassigned-card');
+      if (unassignedCount > 0) {
+        unassignedCard.style.display = 'block';
+      } else {
+        unassignedCard.style.display = 'none';
+      }
+      
+      renderScheduleWithEdit(currentScheduleData.items, currentScheduleData.unassigned);
+      saveDraft();
+    })
+    .catch(err => {
+      resultEl.innerHTML = `<div class="message message-error">エラー: ${err.message}</div>`;
+    });
+}
+    
+    function renderSchedule(items, unassigned) {
+      const resultEl = document.getElementById('schedule-result');
+      
+      if (items.length === 0) {
+        resultEl.innerHTML = '<div class="empty-state"><span class="material-icons">event_busy</span><p>割当可能なレッスンがありません</p></div>';
+        return;
+      }
+      
+      // 日付ごとにグループ化
+      const byDate = {};
+      items.forEach(item => {
+        const key = item['日付'];
+        if (!byDate[key]) byDate[key] = [];
+        byDate[key].push(item);
+      });
+      
+      let html = '';
+      
+      Object.keys(byDate).sort().forEach(date => {
+        const dayItems = byDate[date];
+        html += `
+          <div class="schedule-day">
+            <div class="schedule-day-header">
+              <span class="material-icons">event</span>
+              ${date}（${dayItems[0]['曜日']}）
+            </div>
+            ${dayItems.map(item => `
+              <div class="schedule-item">
+                <span class="schedule-time">${item['開始']} - ${item['終了']}</span>
+                <span class="schedule-student">${item['生徒']}</span>
+                <span class="schedule-place">${item['場所'] || '-'}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      });
+      
+      // 未割当
+      if (unassigned.length > 0) {
+        html += `
+          <div class="unassigned-list">
+            <div class="unassigned-title">
+              <span class="material-icons">warning</span>
+              未割当の生徒
+            </div>
+            ${unassigned.map(u => `
+              <div class="unassigned-item">
+                ${u['生徒']} - ${u['未割当コマ数']}コマ（${u['理由'] || ''}）
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+      
+      resultEl.innerHTML = html;
+    }
+    
+    // ========== ユーティリティ ==========
+    function showMessage(elementId, text, type) {
+      const el = document.getElementById(elementId);
+      if (!text) {
+        el.innerHTML = '';
+        return;
+      }
+      el.innerHTML = `<div class="message message-${type}" style="margin-top:16px;">${text}</div>`;
+    }
+    
+    // ========== スケジュール編集モーダル ==========
+    let currentScheduleData = { items: [], unassigned: [] };  // 現在のスケジュールデータ
+    let editingIndex = -1;  // 編集中のアイテムインデックス
+    let isNewItem = false;  // 新規追加かどうか
+    
+    function openEditModal(index) {
+      editingIndex = index;
+      isNewItem = false;
+      const item = currentScheduleData.items[index];
+      
+      document.getElementById('modal-title-text').textContent = 'レッスン編集';
+      document.getElementById('edit-date').value = item['日付'].replace(/\//g, '-');
+      
+      // 時間を分解
+      const [startH, startM] = (item['開始'] || '').split(':');
+      const [endH, endM] = (item['終了'] || '').split(':');
+      document.getElementById('edit-start-h').value = parseInt(startH) || '';
+      document.getElementById('edit-start-m').value = parseInt(startM) || '';
+      document.getElementById('edit-end-h').value = parseInt(endH) || '';
+      document.getElementById('edit-end-m').value = parseInt(endM) || '';
+      
+      document.getElementById('edit-student').value = item['生徒'];
+      document.getElementById('edit-place').value = item['場所'] || '';
+      
+      document.getElementById('btn-delete-item').style.display = 'block';
+      document.getElementById('edit-modal').classList.add('active');
+    }
+    
+    function openAddModal(studentName, remainCount) {
+      editingIndex = -1;
+      isNewItem = true;
+      
+      document.getElementById('modal-title-text').textContent = '手動割当';
+      
+      // 日付は当月の1日をデフォルトに
+      const year = document.getElementById('schedule-year').value;
+      const month = String(document.getElementById('schedule-month').value).padStart(2, '0');
+      document.getElementById('edit-date').value = `${year}-${month}-01`;
+      
+      document.getElementById('edit-start-h').value = '';
+      document.getElementById('edit-start-m').value = '';
+      document.getElementById('edit-end-h').value = '';
+      document.getElementById('edit-end-m').value = '';
+      document.getElementById('edit-student').value = studentName;
+      document.getElementById('edit-place').value = '';
+      
+      document.getElementById('btn-delete-item').style.display = 'none';
+      document.getElementById('edit-modal').classList.add('active');
+    }
+    
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.remove('active');
+      editingIndex = -1;
+    }
+    
+    function saveEditedItem() {
+      const dateVal = document.getElementById('edit-date').value;
+      const startH = document.getElementById('edit-start-h').value;
+      const startM = document.getElementById('edit-start-m').value;
+      const endH = document.getElementById('edit-end-h').value;
+      const endM = document.getElementById('edit-end-m').value;
+      const student = document.getElementById('edit-student').value;
+      const place = document.getElementById('edit-place').value;
+      
+      // バリデーション
+      if (!dateVal || !startH || !startM || !endH || !endM || !student) {
+        alert('日付、時間、生徒名は必須です');
+        return;
+      }
+      
+      const dateStr = dateVal.replace(/-/g, '/');
+      const date = new Date(dateVal);
+      const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+      const weekday = weekdays[date.getDay()];
+      
+      const newItem = {
+        '日付': dateStr,
+        '曜日': weekday,
+        '開始': `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
+        '終了': `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`,
+        '生徒': student,
+        '場所': place
+      };
+      
+      if (isNewItem) {
+        // 新規追加
+        currentScheduleData.items.push(newItem);
+        
+        // 未割当から1件減らす
+        const unIdx = currentScheduleData.unassigned.findIndex(u => u['生徒'] === student);
+        if (unIdx !== -1) {
+          currentScheduleData.unassigned[unIdx]['未割当コマ数']--;
+          if (currentScheduleData.unassigned[unIdx]['未割当コマ数'] <= 0) {
+            currentScheduleData.unassigned.splice(unIdx, 1);
+          }
+        }
+      } else {
+        // 編集
+        currentScheduleData.items[editingIndex] = newItem;
+      }
+      
+      closeEditModal();
+      rerenderSchedule();
+      saveDraft();  // 下書き保存
+    }
+    
+    function deleteEditedItem() {
+      if (editingIndex < 0) return;
+      if (!confirm('このレッスンを削除しますか？')) return;
+      
+      const item = currentScheduleData.items[editingIndex];
+      currentScheduleData.items.splice(editingIndex, 1);
+      
+      // 未割当に戻す
+      const unIdx = currentScheduleData.unassigned.findIndex(u => u['生徒'] === item['生徒']);
+      if (unIdx !== -1) {
+        currentScheduleData.unassigned[unIdx]['未割当コマ数']++;
+      } else {
+        currentScheduleData.unassigned.push({
+          '生徒': item['生徒'],
+          '未割当コマ数': 1,
+          '理由': '手動削除'
+        });
+      }
+      
+      closeEditModal();
+      rerenderSchedule();
+      saveDraft();  // 下書き保存
+    }
+    
+    function rerenderSchedule() {
+      // 統計更新
+      document.getElementById('stat-assigned').textContent = currentScheduleData.items.length;
+      document.getElementById('stat-unassigned').textContent = 
+        currentScheduleData.unassigned.reduce((a, c) => a + c['未割当コマ数'], 0);
+      
+      // 再描画
+      renderScheduleWithEdit(currentScheduleData.items, currentScheduleData.unassigned);
+    }
+    
+    function renderScheduleWithEdit(items, unassigned) {
+      const resultEl = document.getElementById('schedule-result');
+      
+      if (items.length === 0 && unassigned.length === 0) {
+        resultEl.innerHTML = '<div class="empty-state"><span class="material-icons">event_busy</span><p>割当可能なレッスンがありません</p></div>';
+        document.getElementById('btn-commit').style.display = 'none';
+        return;
+      }
+      
+      // 確定ボタン表示
+      document.getElementById('btn-commit').style.display = items.length > 0 ? 'inline-flex' : 'none';
+      
+      // 日付ごとにグループ化
+      const byDate = {};
+      items.forEach((item, idx) => {
+        item._index = idx;  // インデックスを保持
+        const key = item['日付'];
+        if (!byDate[key]) byDate[key] = [];
+        byDate[key].push(item);
+      });
+      
+      let html = '<p style="color:var(--gray-500);font-size:0.9rem;margin-bottom:16px;">💡 レッスンをタップして編集できます</p>';
+      
+      Object.keys(byDate).sort().forEach(date => {
+        const dayItems = byDate[date];
+        html += `
+          <div class="schedule-day">
+            <div class="schedule-day-header">
+              <span class="material-icons">event</span>
+              ${date}（${dayItems[0]['曜日']}）
+            </div>
+            ${dayItems.map(item => `
+              <div class="schedule-item" onclick="openEditModal(${item._index})">
+                <span class="schedule-time">${item['開始']} - ${item['終了']}</span>
+                <span class="schedule-student">${item['生徒']}</span>
+                <span class="schedule-place">${item['場所'] || '-'}</span>
+                <span class="material-icons" style="color:var(--gray-400);font-size:1.2rem;">edit</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      });
+      
+      // 未割当
+      if (unassigned.length > 0) {
+        html += `
+          <div class="unassigned-list">
+            <div class="unassigned-title">
+              <span class="material-icons">warning</span>
+              未割当の生徒（タップして手動割当）
+            </div>
+            ${unassigned.map(u => `
+              <div class="unassigned-item" onclick="openAddModal('${u['生徒']}', ${u['未割当コマ数']})">
+                <span>${u['生徒']} - ${u['未割当コマ数']}コマ</span>
+                <span class="add-btn">+</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+      
+      resultEl.innerHTML = html;
+    }
+    
+    // generatePreviewを修正して編集可能版を使う
+    function generatePreview() {
+      const year = parseInt(document.getElementById('schedule-year').value);
+      const month = parseInt(document.getElementById('schedule-month').value);
+      
+      if (!year || !month) {
+        alert('年月を入力してください');
+        return;
+      }
+      
+      const resultEl = document.getElementById('schedule-result');
+      resultEl.innerHTML = '<div class="loading"><div class="spinner"></div>スケジュール生成中...</div>';
+      document.getElementById('schedule-stats').style.display = 'none';
+      document.getElementById('btn-commit').style.display = 'none';
+      document.getElementById('draft-notice').style.display = 'none';
+      
+      google.script.run
+        .withSuccessHandler(result => {
+          if (!result || !result.ok) {
+            resultEl.innerHTML = `<div class="message message-error">エラー: ${result?.error || '不明'}</div>`;
+            return;
+          }
+          
+          // データを保持
+          currentScheduleData = {
+            items: result.items || [],
+            unassigned: result.unassigned || [],
+            studentDetails: result.studentDetails || []
+          };
+          
+          // 統計表示
+          const assigned = result.stats?.totalAssigned || 0;
+          const unassignedCount = result.stats?.totalUnassigned || 0;
+          const total = assigned + unassignedCount;
+          const percent = total > 0 ? Math.round((assigned / total) * 100) : 0;
+          
+          document.getElementById('schedule-stats').style.display = 'flex';
+          document.getElementById('stat-assigned').textContent = assigned;
+          document.getElementById('stat-total').textContent = total;
+          document.getElementById('stat-percent').textContent = percent;
+          document.getElementById('stat-unassigned').textContent = unassignedCount;
+          
+          // 未割当がある場合のみ表示
+          const unassignedCard = document.getElementById('stat-unassigned-card');
+          if (unassignedCount > 0) {
+            unassignedCard.style.display = 'block';
+          } else {
+            unassignedCard.style.display = 'none';
+          }
+          
+          // 編集可能版で表示
+          renderScheduleWithEdit(currentScheduleData.items, currentScheduleData.unassigned);
+          
+          // 下書き保存
+          saveDraft();
+        })
+        .withFailureHandler(err => {
+          resultEl.innerHTML = `<div class="message message-error">エラー: ${err.message}</div>`;
+        })
+        .api_preview(year, month);
+    }
+    
+    // ========== 割当詳細モーダル ==========
+    function openDetailModal() {
+      const details = currentScheduleData.studentDetails || [];
+      
+      if (details.length === 0) {
+        alert('詳細データがありません');
+        return;
+      }
+      
+      // ソート：未割当がある人を上に
+      const sorted = [...details].sort((a, b) => {
+        const aUnassigned = a.slots - a.assigned;
+        const bUnassigned = b.slots - b.assigned;
+        if (aUnassigned !== bUnassigned) return bUnassigned - aUnassigned;
+        return a.name.localeCompare(b.name);
+      });
+      
+      let html = '';
+      for (const d of sorted) {
+        const unassigned = d.slots - d.assigned;
+        let iconClass, badgeClass, badgeText;
+        
+        if (unassigned === 0) {
+          iconClass = 'complete';
+          badgeClass = 'complete';
+          badgeText = '完了';
+        } else if (d.assigned > 0) {
+          iconClass = 'partial';
+          badgeClass = 'partial';
+          badgeText = `${unassigned}コマ未割当`;
+        } else {
+          iconClass = 'none';
+          badgeClass = 'none';
+          badgeText = '全て未割当';
+        }
+        
+        const icon = unassigned === 0 ? 'check' : 'warning';
+        
+        html += `
+          <div class="detail-item">
+            <div class="detail-icon ${iconClass}">
+              <span class="material-icons">${icon}</span>
+            </div>
+            <div class="detail-content">
+              <div class="detail-name">${d.name}</div>
+              <div class="detail-status">${d.assigned} / ${d.slots} コマ割当</div>
+            </div>
+            <div class="detail-badge ${badgeClass}">${badgeText}</div>
+          </div>
+        `;
+      }
+      
+      document.getElementById('detail-list').innerHTML = html;
+      document.getElementById('detail-modal').classList.add('active');
+    }
+    
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.remove('active');
+    }
+    
+    // ========== 下書き機能 ==========
+    let pendingDraftData = null;  // 下書きデータを一時保存
+    
+    function loadDraft() {
+  apiGet('loadDraft')
+    .then(result => {
+      console.log('loadDraft result:', result);
+      
+      if (result && result.ok && result.hasDraft) {
+        pendingDraftData = result;
+        document.getElementById('draft-modal-info').textContent = `${result.year}年${result.month}月分`;
+        document.getElementById('draft-confirm-modal').classList.add('active');
+      } else {
+        console.log('下書きなし or エラー:', result);
+      }
+    })
+    .catch(err => {
+      console.error('下書き読み込みエラー:', err);
+    });
+}
+    
+    function closeDraftModal(loadIt) {
+      document.getElementById('draft-confirm-modal').classList.remove('active');
+      
+      if (loadIt && pendingDraftData) {
+        // 下書きを読み込む
+        const result = pendingDraftData;
+        
+        document.getElementById('draft-notice').style.display = 'flex';
+        document.getElementById('schedule-year').value = result.year;
+        document.getElementById('schedule-month').value = result.month;
+        
+        // データを復元
+        currentScheduleData = {
+          items: result.items || [],
+          unassigned: result.unassigned || [],
+          studentDetails: []  // 詳細は再計算が必要
+        };
+        
+        // 統計を計算
+        const assigned = currentScheduleData.items.length;
+        const unassignedCount = currentScheduleData.unassigned.reduce((a, c) => a + c['未割当コマ数'], 0);
+        const total = assigned + unassignedCount;
+        const percent = total > 0 ? Math.round((assigned / total) * 100) : 0;
+        
+        document.getElementById('schedule-stats').style.display = 'flex';
+        document.getElementById('stat-assigned').textContent = assigned;
+        document.getElementById('stat-total').textContent = total;
+        document.getElementById('stat-percent').textContent = percent;
+        document.getElementById('stat-unassigned').textContent = unassignedCount;
+        
+        if (unassignedCount > 0) {
+          document.getElementById('stat-unassigned-card').style.display = 'block';
+        }
+        
+        // 表示
+        renderScheduleWithEdit(currentScheduleData.items, currentScheduleData.unassigned);
+      }
+      
+      pendingDraftData = null;
+    }
+    
+    function saveDraft() {
+  const year = document.getElementById('schedule-year').value;
+  const month = document.getElementById('schedule-month').value;
+  
+  apiPost('saveDraft', {
+    items: currentScheduleData.items,
+    unassigned: currentScheduleData.unassigned,
+    studentDetails: currentScheduleData.studentDetails,
+    year,
+    month
+  })
+    .then(result => {
+      // サイレント保存
+    })
+    .catch(err => {
+      console.error('下書き保存エラー:', err);
+    });
+}
+    
+    function clearDraft() {
+  if (!confirm('下書きを破棄しますか？')) return;
+  
+  apiPost('clearDraft')
+    .then(result => {
+      document.getElementById('draft-notice').style.display = 'none';
+      document.getElementById('schedule-stats').style.display = 'none';
+      document.getElementById('btn-commit').style.display = 'none';
+      currentScheduleData = { items: [], unassigned: [], studentDetails: [] };
+      document.getElementById('schedule-result').innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons">event_available</span>
+          <p>年月を選択して「スケジュール生成」をクリックしてください</p>
+        </div>
+      `;
+    })
+    .catch(err => {
+      alert('エラー: ' + err.message);
+    });
+}
+    
+    // ========== カレンダー登録 ==========
+    function commitWithCalendar() {
+  if (currentScheduleData.items.length === 0) {
+    alert('登録するスケジュールがありません');
+    return;
+  }
+  
+  if (!confirm(`${currentScheduleData.items.length}件のレッスンを確定してカレンダーに登録しますか？`)) {
+    return;
+  }
+  
+  const year = document.getElementById('schedule-year').value;
+  const month = document.getElementById('schedule-month').value;
+  
+  const btn = document.getElementById('btn-commit');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;margin-right:8px;"></div>登録中...';
+  btn.disabled = true;
+  
+  apiPost('commitWithCalendar', { items: currentScheduleData.items, year, month })
+    .then(result => {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      
+      if (result && result.ok) {
+        alert(`完了しました！\n\n📅 時系列ビューに ${result.count}件 保存\n📆 カレンダー「${result.calendarName}」に ${result.calendarCount}件 登録`);
+        document.getElementById('draft-notice').style.display = 'none';
+        document.getElementById('btn-commit').style.display = 'none';
+      } else {
+        alert('エラー: ' + (result?.error || '不明'));
+      }
+    })
+    .catch(err => {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      alert('エラー: ' + err.message);
+    });
+}
+    
+    // 旧commitSchedule（カレンダーなし版）- 必要に応じて使用
+    function commitSchedule() {
+      commitWithCalendar();  // カレンダー版を呼ぶ
+    }
+    
+    // ========== 時系列ビュー ==========
+    let timelineData = [];  // 時系列ビューのデータ
+    let timelineEditingRow = -1;  // 編集中の行番号
+    
+    function loadTimeline() {
+  const year = parseInt(document.getElementById('timeline-year').value);
+  const month = parseInt(document.getElementById('timeline-month').value);
+  
+  if (!year || !month) {
+    alert('年月を入力してください');
+    return;
+  }
+  
+  const resultEl = document.getElementById('timeline-result');
+  resultEl.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  document.getElementById('timeline-stats').style.display = 'none';
+  document.getElementById('timeline-bulk-actions').style.display = 'none';
+  document.getElementById('timeline-selected-stat').style.display = 'none';
+  
+  apiGet('getTimeline', { year, month })
+    .then(result => {
+      if (!result || !result.ok) {
+        resultEl.innerHTML = `<div class="message message-error">エラー: ${result?.error || '不明'}</div>`;
+        return;
+      }
+      
+      timelineData = result.items || [];
+      
+      document.getElementById('timeline-stats').style.display = 'flex';
+      document.getElementById('timeline-count').textContent = timelineData.length;
+      
+      renderTimeline();
+    })
+    .catch(err => {
+      resultEl.innerHTML = `<div class="message message-error">エラー: ${err.message}</div>`;
+    });
+}
+    
+    function renderTimeline() {
+      const resultEl = document.getElementById('timeline-result');
+      
+      if (timelineData.length === 0) {
+        resultEl.innerHTML = '<div class="empty-state"><span class="material-icons">event_busy</span><p>この月のスケジュールはまだありません</p></div>';
+        document.getElementById('timeline-bulk-actions').style.display = 'none';
+        document.getElementById('timeline-selected-stat').style.display = 'none';
+        return;
+      }
+      
+      // 一括操作バーを表示
+      document.getElementById('timeline-bulk-actions').style.display = 'flex';
+      document.getElementById('timeline-select-all').checked = false;
+      updateSelectedCount();
+      
+      // 日付ごとにグループ化
+      const byDate = {};
+      timelineData.forEach(item => {
+        const key = item['日付'];
+        if (!byDate[key]) byDate[key] = [];
+        byDate[key].push(item);
+      });
+      
+      let html = '<p style="color:var(--gray-500);font-size:0.9rem;margin-bottom:16px;">💡 チェックで複数選択、ボタンで個別操作できます</p>';
+      
+      Object.keys(byDate).sort().forEach(date => {
+        const dayItems = byDate[date];
+        html += `
+          <div class="schedule-day">
+            <div class="schedule-day-header">
+              <span class="material-icons">event</span>
+              ${date}（${dayItems[0]['曜日']}）
+            </div>
+            ${dayItems.map(item => `
+              <div class="schedule-item" data-row="${item._row}">
+                <input type="checkbox" class="item-checkbox" data-row="${item._row}" onclick="event.stopPropagation(); updateSelectedCount();">
+                <span class="schedule-time">${item['開始']} - ${item['終了']}</span>
+                <span class="schedule-student">${item['生徒']}</span>
+                <span class="schedule-place">${item['場所'] || '-'}</span>
+                <div class="item-actions">
+                  <button class="action-btn edit-btn" onclick="event.stopPropagation(); openTimelineEditModal(${item._row});" title="編集">
+                    <span class="material-icons" style="font-size:1.1rem;">edit</span>
+                  </button>
+                  <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteSingleTimeline(${item._row});" title="削除">
+                    <span class="material-icons" style="font-size:1.1rem;">delete</span>
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      });
+      
+      resultEl.innerHTML = html;
+    }
+    
+    // 選択数を更新
+    function updateSelectedCount() {
+      const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+      const count = checkboxes.length;
+      
+      document.getElementById('timeline-selected-count').textContent = count;
+      document.getElementById('timeline-selected-stat').style.display = count > 0 ? 'block' : 'none';
+      
+      // 選択状態のスタイルを更新
+      document.querySelectorAll('.schedule-item[data-row]').forEach(item => {
+        const checkbox = item.querySelector('.item-checkbox');
+        if (checkbox && checkbox.checked) {
+          item.classList.add('selected');
+        } else {
+          item.classList.remove('selected');
+        }
+      });
+    }
+    
+    // すべて選択/解除
+    function toggleSelectAllTimeline() {
+      const selectAll = document.getElementById('timeline-select-all').checked;
+      document.querySelectorAll('.item-checkbox').forEach(cb => {
+        cb.checked = selectAll;
+      });
+      updateSelectedCount();
+    }
+    
+    // 単一削除
+    function deleteSingleTimeline(rowNum) {
+  const item = timelineData.find(i => i._row === rowNum);
+  if (!item) return;
+  
+  if (!confirm(`「${item['生徒']}」のレッスン（${item['日付']} ${item['開始']}）を削除しますか？\nカレンダーからも削除されます。`)) {
+    return;
+  }
+  
+  apiPost('deleteTimelineItem', { rowNumber: rowNum })
+    .then(result => {
+      if (result && result.ok) {
+        loadTimeline();
+      } else {
+        alert('エラー: ' + (result?.error || '不明'));
+      }
+    })
+    .catch(err => {
+      alert('エラー: ' + err.message);
+    });
+}
+    
+    // 選択したレッスンを一括削除
+    function deleteSelectedTimelines() {
+  const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+  if (checkboxes.length === 0) {
+    alert('削除するレッスンを選択してください');
+    return;
+  }
+  
+  const rows = Array.from(checkboxes).map(cb => parseInt(cb.dataset.row));
+  
+  if (!confirm(`選択した ${rows.length} 件のレッスンを削除しますか？\nカレンダーからも削除されます。`)) {
+    return;
+  }
+  
+  const sortedRows = rows.sort((a, b) => b - a);
+  let completed = 0;
+  let errors = [];
+  
+  sortedRows.forEach(rowNum => {
+    apiPost('deleteTimelineItem', { rowNumber: rowNum })
+      .then(result => {
+        completed++;
+        if (!result || !result.ok) {
+          errors.push(result?.error || '不明なエラー');
+        }
+        
+        if (completed === sortedRows.length) {
+          if (errors.length > 0) {
+            alert(`${sortedRows.length - errors.length} 件削除、${errors.length} 件エラー`);
+          }
+          loadTimeline();
+        }
+      })
+      .catch(err => {
+        completed++;
+        errors.push(err.message);
+        
+        if (completed === sortedRows.length) {
+          alert(`${sortedRows.length - errors.length} 件削除、${errors.length} 件エラー`);
+          loadTimeline();
+        }
+      });
+  });
+}
+    
+    function openTimelineEditModal(rowNum) {
+      timelineEditingRow = rowNum;
+      const item = timelineData.find(i => i._row === rowNum);
+      if (!item) return;
+      
+      document.getElementById('timeline-modal-title').textContent = 'レッスン編集';
+      document.getElementById('timeline-edit-date').value = (item['日付'] || '').replace(/\//g, '-');
+      
+      // 時間を分解
+      const [startH, startM] = (item['開始'] || '').split(':');
+      const [endH, endM] = (item['終了'] || '').split(':');
+      document.getElementById('timeline-edit-start-h').value = parseInt(startH) || '';
+      document.getElementById('timeline-edit-start-m').value = parseInt(startM) || '';
+      document.getElementById('timeline-edit-end-h').value = parseInt(endH) || '';
+      document.getElementById('timeline-edit-end-m').value = parseInt(endM) || '';
+      
+      document.getElementById('timeline-edit-student').value = item['生徒'] || '';
+      document.getElementById('timeline-edit-place').value = item['場所'] || '';
+      
+      document.getElementById('btn-timeline-delete').style.display = 'block';
+      document.getElementById('timeline-modal').classList.add('active');
+    }
+    
+    function openTimelineAddModal() {
+      timelineEditingRow = -1;
+      
+      document.getElementById('timeline-modal-title').textContent = '新規追加';
+      
+      // 日付は選択中の月の1日をデフォルトに
+      const year = document.getElementById('timeline-year').value;
+      const month = String(document.getElementById('timeline-month').value).padStart(2, '0');
+      document.getElementById('timeline-edit-date').value = `${year}-${month}-01`;
+      
+      document.getElementById('timeline-edit-start-h').value = '';
+      document.getElementById('timeline-edit-start-m').value = '';
+      document.getElementById('timeline-edit-end-h').value = '';
+      document.getElementById('timeline-edit-end-m').value = '';
+      document.getElementById('timeline-edit-student').value = '';
+      document.getElementById('timeline-edit-place').value = '';
+      
+      document.getElementById('btn-timeline-delete').style.display = 'none';
+      document.getElementById('timeline-modal').classList.add('active');
+    }
+    
+    function closeTimelineModal() {
+      document.getElementById('timeline-modal').classList.remove('active');
+      timelineEditingRow = -1;
+    }
+    
+    function saveTimelineItem() {
+  const dateVal = document.getElementById('timeline-edit-date').value;
+  const startH = document.getElementById('timeline-edit-start-h').value;
+  const startM = document.getElementById('timeline-edit-start-m').value;
+  const endH = document.getElementById('timeline-edit-end-h').value;
+  const endM = document.getElementById('timeline-edit-end-m').value;
+  const student = document.getElementById('timeline-edit-student').value;
+  const place = document.getElementById('timeline-edit-place').value;
+  
+  if (!dateVal || startH === '' || startM === '' || endH === '' || endM === '' || !student) {
+    alert('日付、時間、生徒名は必須です');
+    return;
+  }
+  
+  const dateStr = dateVal.replace(/-/g, '/');
+  const date = new Date(dateVal);
+  const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+  const weekday = weekdays[date.getDay()];
+  
+  const item = {
+    _row: timelineEditingRow > 0 ? timelineEditingRow : null,
+    '日付': dateStr,
+    '曜日': weekday,
+    '開始': `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
+    '終了': `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`,
+    '生徒': student,
+    '場所': place,
+    '備考': ''
+  };
+  
+  apiPost('saveTimelineItem', { data: item })
+    .then(result => {
+      if (result && result.ok) {
+        closeTimelineModal();
+        loadTimeline();
+      } else {
+        alert('エラー: ' + (result?.error || '不明'));
+      }
+    })
+    .catch(err => {
+      alert('エラー: ' + err.message);
+    });
+}
+    
+    function deleteTimelineItem() {
+  if (timelineEditingRow <= 0) return;
+  if (!confirm('このレッスンを削除しますか？')) return;
+  
+  apiPost('deleteTimelineItem', { rowNumber: timelineEditingRow })
+    .then(result => {
+      if (result && result.ok) {
+        closeTimelineModal();
+        loadTimeline();
+      } else {
+        alert('エラー: ' + (result?.error || '不明'));
+      }
+    })
+    .catch(err => {
+      alert('エラー: ' + err.message);
+    });
+}
+    
+    // ========== 設定 ==========
+    function loadSettings() {
+  apiGet('getSettings')
+    .then(result => {
+      if (result && result.ok) {
+        const settings = result.settings || {};
+        document.getElementById('settings-calendar-id').value = settings.calendarId || '';
+        
+        if (settings.calendarId) {
+          document.getElementById('settings-current').style.display = 'block';
+          document.getElementById('settings-calendar-name').textContent = settings.calendarName || settings.calendarId;
+        }
+      }
+    })
+    .catch(err => {
+      console.error('設定読み込みエラー:', err);
+    });
+}
+    
+    function saveSettings() {
+  const calendarId = document.getElementById('settings-calendar-id').value.trim();
+  const msgEl = document.getElementById('settings-message');
+  
+  msgEl.innerHTML = '<div class="message message-info"><span class="material-icons">hourglass_top</span>保存中...</div>';
+  
+  apiPost('saveSettings', { calendarId })
+    .then(result => {
+      if (result && result.ok) {
+        msgEl.innerHTML = '<div class="message message-success"><span class="material-icons">check_circle</span>保存しました！</div>';
+        
+        if (result.calendarName) {
+          document.getElementById('settings-current').style.display = 'block';
+          document.getElementById('settings-calendar-name').textContent = result.calendarName;
+        } else if (!calendarId) {
+          document.getElementById('settings-current').style.display = 'none';
+        }
+        
+        setTimeout(() => { msgEl.innerHTML = ''; }, 3000);
+      } else {
+        msgEl.innerHTML = `<div class="message message-error"><span class="material-icons">error</span>${result?.error || '保存に失敗しました'}</div>`;
+      }
+    })
+    .catch(err => {
+      msgEl.innerHTML = `<div class="message message-error"><span class="material-icons">error</span>エラー: ${err.message}</div>`;
+    });
+}
+  </script>
+  
+  <!-- 編集モーダル -->
+  <div id="edit-modal" class="modal-overlay" onclick="if(event.target===this)closeEditModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span class="material-icons">edit_calendar</span>
+          <span id="modal-title-text">レッスン編集</span>
+        </h3>
+        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">日付</label>
+          <input type="date" id="edit-date" class="form-input">
+        </div>
+        
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">開始時間</label>
+          <div class="time-select-group">
+            <select id="edit-start-h" class="time-select hour-select"></select>
+            <span>:</span>
+            <select id="edit-start-m" class="time-select minute-select"></select>
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">終了時間</label>
+          <div class="time-select-group">
+            <select id="edit-end-h" class="time-select hour-select"></select>
+            <span>:</span>
+            <select id="edit-end-m" class="time-select minute-select"></select>
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">生徒名</label>
+          <input type="text" id="edit-student" class="form-input" readonly style="background:var(--gray-100);">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">場所</label>
+          <select id="edit-place" class="form-select place-select"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="btn-delete-item" onclick="deleteEditedItem()">
+          <span class="material-icons">delete</span>
+          削除
+        </button>
+        <button class="btn btn-secondary" onclick="closeEditModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveEditedItem()">
+          <span class="material-icons">check</span>
+          保存
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 時系列ビュー編集モーダル -->
+  <div id="timeline-modal" class="modal-overlay" onclick="if(event.target===this)closeTimelineModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span class="material-icons">edit_calendar</span>
+          <span id="timeline-modal-title">レッスン編集</span>
+        </h3>
+        <button class="modal-close" onclick="closeTimelineModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">日付</label>
+          <input type="date" id="timeline-edit-date" class="form-input">
+        </div>
+        
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">開始時間</label>
+          <div class="time-select-group">
+            <select id="timeline-edit-start-h" class="time-select hour-select"></select>
+            <span>:</span>
+            <select id="timeline-edit-start-m" class="time-select minute-select"></select>
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">終了時間</label>
+          <div class="time-select-group">
+            <select id="timeline-edit-end-h" class="time-select hour-select"></select>
+            <span>:</span>
+            <select id="timeline-edit-end-m" class="time-select minute-select"></select>
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">生徒名</label>
+          <input type="text" id="timeline-edit-student" class="form-input" placeholder="生徒名を入力">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">場所</label>
+          <select id="timeline-edit-place" class="form-select place-select"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="btn-timeline-delete" onclick="deleteTimelineItem()">
+          <span class="material-icons">delete</span>
+          削除
+        </button>
+        <button class="btn btn-secondary" onclick="closeTimelineModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveTimelineItem()">
+          <span class="material-icons">check</span>
+          保存
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 割当詳細モーダル -->
+  <div id="detail-modal" class="modal-overlay" onclick="if(event.target===this)closeDetailModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span class="material-icons">list_alt</span>
+          割当詳細
+        </h3>
+        <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:0;">
+        <div id="detail-list" class="detail-list">
+          <!-- 動的に生成 -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeDetailModal()">閉じる</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 下書き確認モーダル -->
+  <div id="draft-confirm-modal" class="draft-modal-overlay" onclick="if(event.target===this)closeDraftModal(false)">
+    <div class="draft-modal">
+      <div class="draft-modal-icon">
+        <span class="material-icons">edit_note</span>
+      </div>
+      <div class="draft-modal-content">
+        <h2 class="draft-modal-title">下書きがあります</h2>
+        <p class="draft-modal-desc">前回の作業途中のデータが見つかりました</p>
+        <div class="draft-modal-info">
+          <span class="material-icons">calendar_month</span>
+          <span id="draft-modal-info">2025年12月分</span>
+        </div>
+        <div class="draft-modal-buttons">
+          <button class="btn btn-primary" onclick="closeDraftModal(true)">
+            <span class="material-icons">play_arrow</span>
+            続きから編集
+          </button>
+          <button class="btn btn-secondary" onclick="closeDraftModal(false)">
+            新しく作成する
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

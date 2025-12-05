@@ -3391,67 +3391,7 @@ function filterStudents() {
       resultEl.innerHTML = html;
     }
     
-    // generatePreviewを修正して編集可能版を使う
-    function generatePreview() {
-      const year = parseInt(document.getElementById('schedule-year').value);
-      const month = parseInt(document.getElementById('schedule-month').value);
-      
-      if (!year || !month) {
-        alert('年月を入力してください');
-        return;
-      }
-      
-      const resultEl = document.getElementById('schedule-result');
-      resultEl.innerHTML = '<div class="loading"><div class="spinner"></div>スケジュール生成中...</div>';
-      document.getElementById('schedule-stats').style.display = 'none';
-      document.getElementById('btn-commit').style.display = 'none';
-      document.getElementById('draft-notice').style.display = 'none';
-      
-      google.script.run
-        .withSuccessHandler(result => {
-          if (!result || !result.ok) {
-            resultEl.innerHTML = `<div class="message message-error">エラー: ${result?.error || '不明'}</div>`;
-            return;
-          }
-          
-          // データを保持
-          currentScheduleData = {
-            items: result.items || [],
-            unassigned: result.unassigned || [],
-            studentDetails: result.studentDetails || []
-          };
-          
-          // 統計表示
-          const assigned = result.stats?.totalAssigned || 0;
-          const unassignedCount = result.stats?.totalUnassigned || 0;
-          const total = assigned + unassignedCount;
-          const percent = total > 0 ? Math.round((assigned / total) * 100) : 0;
-          
-          document.getElementById('schedule-stats').style.display = 'flex';
-          document.getElementById('stat-assigned').textContent = assigned;
-          document.getElementById('stat-total').textContent = total;
-          document.getElementById('stat-percent').textContent = percent;
-          document.getElementById('stat-unassigned').textContent = unassignedCount;
-          
-          // 未割当がある場合のみ表示
-          const unassignedCard = document.getElementById('stat-unassigned-card');
-          if (unassignedCount > 0) {
-            unassignedCard.style.display = 'block';
-          } else {
-            unassignedCard.style.display = 'none';
-          }
-          
-          // 編集可能版で表示
-          renderScheduleWithEdit(currentScheduleData.items, currentScheduleData.unassigned);
-          
-          // 下書き保存
-          saveDraft();
-        })
-        .withFailureHandler(err => {
-          resultEl.innerHTML = `<div class="message message-error">エラー: ${err.message}</div>`;
-        })
-        .api_preview(year, month);
-    }
+    
     
     // ========== 割当詳細モーダル ==========
     function openDetailModal() {
